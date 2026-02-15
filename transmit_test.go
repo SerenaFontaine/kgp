@@ -1,6 +1,7 @@
 package kgp
 
 import (
+	"errors"
 	"strings"
 	"testing"
 )
@@ -134,6 +135,54 @@ func TestTransmitBuilder_TransmitTemp(t *testing.T) {
 
 	if tb.cmd.controlData["t"] != string(TransmitTemp) {
 		t.Errorf("Expected transmit mode 't', got %s", tb.cmd.controlData["t"])
+	}
+}
+
+// TestTransmitBuilder_TryTransmitTemp tests non-panicking temp transmission API.
+func TestTransmitBuilder_TryTransmitTemp(t *testing.T) {
+	tb := NewTransmit()
+	got, err := tb.TryTransmitTemp("/tmp/tty-graphics-protocol-12345.png")
+	if err != nil {
+		t.Fatalf("TryTransmitTemp returned error: %v", err)
+	}
+	if got != tb {
+		t.Fatal("TryTransmitTemp should return the same builder")
+	}
+	if tb.cmd.controlData["t"] != string(TransmitTemp) {
+		t.Errorf("Expected transmit mode 't', got %s", tb.cmd.controlData["t"])
+	}
+}
+
+// TestTransmitBuilder_TryTransmitTempInvalidPath tests invalid path handling without panic.
+func TestTransmitBuilder_TryTransmitTempInvalidPath(t *testing.T) {
+	tb := NewTransmit()
+	got, err := tb.TryTransmitTemp("/tmp/image.png")
+	if !errors.Is(err, ErrInvalidTempPath) {
+		t.Fatalf("expected ErrInvalidTempPath, got %v", err)
+	}
+	if got != nil {
+		t.Fatal("TryTransmitTemp should return nil builder on error")
+	}
+}
+
+// TestTransmitBuilder_TransmitTempInvalidPath tests path validation for temp transmission
+func TestTransmitBuilder_TransmitTempInvalidPath(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic for invalid temp path")
+		}
+	}()
+
+	NewTransmit().TransmitTemp("/tmp/image.png")
+}
+
+// TestValidateTempPath tests temporary path validation helper.
+func TestValidateTempPath(t *testing.T) {
+	if err := ValidateTempPath("/tmp/tty-graphics-protocol-1.png"); err != nil {
+		t.Fatalf("ValidateTempPath returned unexpected error: %v", err)
+	}
+	if err := ValidateTempPath("/tmp/other.png"); !errors.Is(err, ErrInvalidTempPath) {
+		t.Fatalf("expected ErrInvalidTempPath, got %v", err)
 	}
 }
 

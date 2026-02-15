@@ -271,7 +271,7 @@ cmd := kgp.NewTransmitDisplay().
 fmt.Print(cmd.Encode())
 
 // Temporary file (terminal deletes after reading)
-// Path must contain "tty-graphics-protocol"
+// Path must contain "tty-graphics-protocol" (TransmitTemp panics if invalid)
 cmd := kgp.NewTransmitDisplay().
     Format(kgp.FormatPNG).
     TransmitTemp("/tmp/tty-graphics-protocol-12345.png").
@@ -306,7 +306,7 @@ fmt.Print(cmd.Encode())
 
 ```go
 // Parse terminal response
-resp, err := kgp.ParseResponse("\x1b_Gi=10,p=1;OK\x1b\\")
+resp, err := kgp.ParseResponseStrict("\x1b_Gi=10,p=1;OK\x1b\\")
 if err != nil {
     fmt.Println("Error:", err)
     return
@@ -342,7 +342,9 @@ if resp.Success {
 - **`DeleteImage(id)`** - Delete specific image
 - **`DeleteImageFree(id)`** - Delete and free specific image
 - **`DeleteAtCursor()`** - Delete at cursor position
-- **`PlayAnimation(id)`** - Play animation
+- **`DeleteAtCursorFree()`** - Delete at cursor and free memory
+- **`PlayAnimation(id)`** - Play animation using protocol `LoopCount(2)`
+- **`PlayAnimationWithLoopCount(id, count)`** - Play with explicit protocol loop count
 - **`PlayAnimationLoop(id)`** - Play with infinite looping
 - **`StopAnimation(id)`** - Stop animation
 - **`ResetAnimation(id)`** - Reset to first frame
@@ -380,6 +382,8 @@ if resp.Success {
 - `DeleteByColumn` / `DeleteByColumnFree`
 - `DeleteByRow` / `DeleteByRowFree`
 - `DeleteByZIndex` / `DeleteByZIndexFree`
+- `DeleteByIDRange` / `DeleteByIDRangeFree`
+- `DeleteFrames` / `DeleteFramesFree`
 
 (Lowercase = preserve data, Uppercase = free data)
 
@@ -455,6 +459,16 @@ if !resp.Success {
 ## Contributing
 
 Please see [CONTRIBUTING.md](CONTRIBUTING.md)
+
+## Documentation
+
+For exhaustive technical reference and examples, see the [Hugo documentation](docs/) in this repository:
+
+```bash
+cd docs && hugo server --minify
+```
+
+Then open http://localhost:1313
 
 ## References
 

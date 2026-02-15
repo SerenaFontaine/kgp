@@ -1,5 +1,13 @@
 package kgp
 
+import (
+	"errors"
+	"strings"
+)
+
+// ErrInvalidTempPath indicates a temporary transmit path is not protocol-compliant.
+var ErrInvalidTempPath = errors.New(`temporary file path must contain "tty-graphics-protocol"`)
+
 // TransmitBuilder builds a transmit action command.
 type TransmitBuilder struct {
 	cmd         *Command
@@ -82,9 +90,28 @@ func (tb *TransmitBuilder) TransmitFileWithOffset(path string, offset, size int)
 // TransmitTemp reads image data from a temporary file (terminal deletes after reading).
 // Path must contain "tty-graphics-protocol" for security.
 func (tb *TransmitBuilder) TransmitTemp(path string) *TransmitBuilder {
+	if _, err := tb.TryTransmitTemp(path); err != nil {
+		panic(err.Error())
+	}
+	return tb
+}
+
+// ValidateTempPath validates that a temporary-file transmit path satisfies protocol requirements.
+func ValidateTempPath(path string) error {
+	if !strings.Contains(path, "tty-graphics-protocol") {
+		return ErrInvalidTempPath
+	}
+	return nil
+}
+
+// TryTransmitTemp reads image data from a temporary file and returns an error on invalid paths.
+func (tb *TransmitBuilder) TryTransmitTemp(path string) (*TransmitBuilder, error) {
+	if err := ValidateTempPath(path); err != nil {
+		return nil, err
+	}
 	tb.cmd.SetKey("t", string(TransmitTemp))
 	tb.imageData = []byte(path)
-	return tb
+	return tb, nil
 }
 
 // TransmitSharedMemory reads image data from POSIX shared memory.
