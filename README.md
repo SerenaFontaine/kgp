@@ -1,5 +1,10 @@
 # KGP - Kitty Graphics Protocol Go Bindings
 
+[![Docs](https://img.shields.io/badge/docs-github_pages-2ea44f?logo=github)](https://serenafontaine.github.io/kgp/)
+[![License](https://img.shields.io/github/license/SerenaFontaine/kgp)](https://github.com/SerenaFontaine/kgp/blob/main/LICENSE)
+[![Go Reference](https://img.shields.io/badge/go-reference-00ADD8?logo=go)](https://pkg.go.dev/github.com/SerenaFontaine/kgp)
+[![Docs Deploy](https://img.shields.io/github/actions/workflow/status/SerenaFontaine/kgp/docs-pages.yml?label=docs%20deploy)](https://github.com/SerenaFontaine/kgp/actions/workflows/docs-pages.yml)
+
 Go bindings for the [Kitty Graphics Protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/), enabling terminal applications to render pixel-based graphics alongside text.
 
 ## Features
