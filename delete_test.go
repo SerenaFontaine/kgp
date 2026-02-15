@@ -210,12 +210,50 @@ func TestDeleteModes(t *testing.T) {
 		DeleteByRowFree:         "Y",
 		DeleteByZIndex:          "z",
 		DeleteByZIndexFree:      "Z",
+		DeleteByIDRange:         "r",
+		DeleteByIDRangeFree:     "R",
+		DeleteFrames:            "f",
+		DeleteFramesFree:        "F",
 	}
 
 	for mode, expected := range modes {
 		if string(mode) != expected {
 			t.Errorf("Delete mode %v = %s, want %s", mode, string(mode), expected)
 		}
+	}
+}
+
+// TestDeleteBuilder_IDRange tests setting ID range
+func TestDeleteBuilder_IDRange(t *testing.T) {
+	db := NewDelete(DeleteByIDRange)
+	db.IDRange(10, 20)
+	if db.cmd.controlData["x"] != "10" {
+		t.Errorf("Expected start ID '10', got %s", db.cmd.controlData["x"])
+	}
+	if db.cmd.controlData["y"] != "20" {
+		t.Errorf("Expected end ID '20', got %s", db.cmd.controlData["y"])
+	}
+}
+
+// TestDeleteBuilder_IDRangeFlow tests a complete ID range delete flow
+func TestDeleteBuilder_IDRangeFlow(t *testing.T) {
+	cmd := NewDelete(DeleteByIDRangeFree).
+		IDRange(100, 200).
+		Build()
+
+	encoded := cmd.Encode()
+
+	if !strings.Contains(encoded, "a=d") {
+		t.Error("Should contain action=d")
+	}
+	if !strings.Contains(encoded, "d=R") {
+		t.Error("Should contain delete mode=R (free)")
+	}
+	if !strings.Contains(encoded, "x=100") {
+		t.Error("Should contain start ID 100")
+	}
+	if !strings.Contains(encoded, "y=200") {
+		t.Error("Should contain end ID 200")
 	}
 }
 

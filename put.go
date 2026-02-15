@@ -14,6 +14,12 @@ func NewPut(imageID uint32) *PutBuilder {
 	return pb
 }
 
+// ImageNumber sets the image number (application-specific, non-unique).
+func (pb *PutBuilder) ImageNumber(num uint32) *PutBuilder {
+	pb.cmd.SetKeyUint32("I", num)
+	return pb
+}
+
 // PlacementID sets the placement ID (auto-generated if not specified).
 func (pb *PutBuilder) PlacementID(id uint32) *PutBuilder {
 	pb.cmd.SetKeyUint32("p", id)

@@ -50,6 +50,6 @@ func QuerySupport() *Command {
 		Format(FormatRGB).
 		Dimensions(1, 1).
 		TransmitMedium(TransmitDirect).
-		TestData([]byte{0, 0, 0, 0}).
+		TestData([]byte{0, 0, 0}).
 		Build()
 }

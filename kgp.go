@@ -130,6 +130,14 @@ const (
 	DeleteByZIndex DeleteMode = "z"
 	// DeleteByZIndexFree deletes by z-index and frees data
 	DeleteByZIndexFree DeleteMode = "Z"
+	// DeleteByIDRange deletes images with IDs in a range (preserve data)
+	DeleteByIDRange DeleteMode = "r"
+	// DeleteByIDRangeFree deletes images with IDs in a range and frees data
+	DeleteByIDRangeFree DeleteMode = "R"
+	// DeleteFrames deletes animation frames (preserve data)
+	DeleteFrames DeleteMode = "f"
+	// DeleteFramesFree deletes animation frames and frees data
+	DeleteFramesFree DeleteMode = "F"
 )
 
 // AnimationState controls animation playback.
@@ -303,6 +311,7 @@ func (c *Command) EncodeChunked(maxChunkSize int) []string {
 // Response represents a terminal response to a graphics command.
 type Response struct {
 	ImageID     uint32
+	ImageNumber uint32
 	PlacementID uint32
 	Success     bool
 	ErrorCode   string
@@ -310,8 +319,25 @@ type Response struct {
 }
 
 // ParseResponse parses a terminal response.
-// Format: ESC_Gi=<id>[,p=<pid>];[OK|ERROR_CODE:message]ESC\
+// Format: ESC_Gi=<id>[,I=<num>][,p=<pid>];[OK|ERROR_CODE:message]ESC\
 func ParseResponse(response string) (*Response, error) {
+	return parseResponse(response, false)
+}
+
+// ParseResponseStrict parses a terminal response with strict format validation.
+// Strict mode requires APC markers, valid key=value control pairs, and either
+// "OK" status or "ERROR_CODE:message" status.
+func ParseResponseStrict(response string) (*Response, error) {
+	return parseResponse(response, true)
+}
+
+func parseResponse(response string, strict bool) (*Response, error) {
+	if strict {
+		if !strings.HasPrefix(response, "\x1b_G") || !strings.HasSuffix(response, "\x1b\\") {
+			return nil, fmt.Errorf("invalid response markers")
+		}
+	}
+
 	// Strip APC markers
 	response = strings.TrimPrefix(response, "\x1b_G")
 	response = strings.TrimSuffix(response, "\x1b\\")
@@ -329,20 +355,45 @@ func ParseResponse(response string) (*Response, error) {
 
 	// Parse control data
 	for _, pair := range strings.Split(controlData, ",") {
+		if pair == "" {
+			continue
+		}
 		kv := strings.SplitN(pair, "=", 2)
 		if len(kv) != 2 {
+			if strict {
+				return nil, fmt.Errorf("invalid control data pair: %q", pair)
+			}
 			continue
 		}
 
 		switch kv[0] {
 		case "i":
-			if val, err := strconv.ParseUint(kv[1], 10, 32); err == nil {
-				resp.ImageID = uint32(val)
+			val, err := strconv.ParseUint(kv[1], 10, 32)
+			if err != nil {
+				if strict {
+					return nil, fmt.Errorf("invalid i value: %w", err)
+				}
+				continue
 			}
+			resp.ImageID = uint32(val)
+		case "I":
+			val, err := strconv.ParseUint(kv[1], 10, 32)
+			if err != nil {
+				if strict {
+					return nil, fmt.Errorf("invalid I value: %w", err)
+				}
+				continue
+			}
+			resp.ImageNumber = uint32(val)
 		case "p":
-			if val, err := strconv.ParseUint(kv[1], 10, 32); err == nil {
-				resp.PlacementID = uint32(val)
+			val, err := strconv.ParseUint(kv[1], 10, 32)
+			if err != nil {
+				if strict {
+					return nil, fmt.Errorf("invalid p value: %w", err)
+				}
+				continue
 			}
+			resp.PlacementID = uint32(val)
 		}
 	}
 
@@ -351,8 +402,13 @@ func ParseResponse(response string) (*Response, error) {
 		resp.Success = true
 	} else if strings.Contains(status, ":") {
 		parts := strings.SplitN(status, ":", 2)
+		if strict && (parts[0] == "" || parts[1] == "") {
+			return nil, fmt.Errorf("invalid error status format")
+		}
 		resp.ErrorCode = parts[0]
 		resp.Message = parts[1]
+	} else if strict {
+		return nil, fmt.Errorf("invalid status format")
 	}
 
 	return resp, nil

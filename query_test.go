@@ -106,6 +106,9 @@ func TestQuerySupport(t *testing.T) {
 	if len(cmd.payload) == 0 {
 		t.Error("Query should have test data payload")
 	}
+	if len(cmd.payload) != 3 {
+		t.Errorf("Query payload should be 3 bytes for 1x1 RGB, got %d", len(cmd.payload))
+	}
 }
 
 // TestQueryBuilder_CompleteFlow tests a complete query flow

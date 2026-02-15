@@ -57,6 +57,13 @@ func (db *DeleteBuilder) ZIndex(z int) *DeleteBuilder {
 	return db
 }
 
+// IDRange sets the image ID range for deletion (used with DeleteByIDRange/DeleteByIDRangeFree).
+func (db *DeleteBuilder) IDRange(startID, endID int) *DeleteBuilder {
+	db.cmd.SetKeyInt("x", startID)
+	db.cmd.SetKeyInt("y", endID)
+	return db
+}
+
 // ResponseSuppression controls which responses the terminal sends.
 func (db *DeleteBuilder) ResponseSuppression(mode ResponseSuppression) *DeleteBuilder {
 	db.cmd.SetKeyUint32("q", uint32(mode))

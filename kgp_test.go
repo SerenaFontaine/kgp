@@ -152,6 +152,7 @@ func TestParseResponse(t *testing.T) {
 		response    string
 		wantSuccess bool
 		wantImageID uint32
+		wantImgNum  uint32
 		wantPlaceID uint32
 		wantError   string
 		wantMessage string
@@ -170,6 +171,13 @@ func TestParseResponse(t *testing.T) {
 			wantImageID: 5,
 			wantError:   "ENOSPC",
 			wantMessage: "Storage quota exceeded",
+		},
+		{
+			name:        "Success with image number",
+			response:    "\x1b_Gi=42,I=7;OK\x1b\\",
+			wantSuccess: true,
+			wantImageID: 42,
+			wantImgNum:  7,
 		},
 		{
 			name:        "Simple success",
@@ -191,6 +199,9 @@ func TestParseResponse(t *testing.T) {
 			if resp.ImageID != tt.wantImageID {
 				t.Errorf("ImageID = %d, want %d", resp.ImageID, tt.wantImageID)
 			}
+			if resp.ImageNumber != tt.wantImgNum {
+				t.Errorf("ImageNumber = %d, want %d", resp.ImageNumber, tt.wantImgNum)
+			}
 			if resp.PlacementID != tt.wantPlaceID {
 				t.Errorf("PlacementID = %d, want %d", resp.PlacementID, tt.wantPlaceID)
 			}
@@ -209,6 +220,41 @@ func TestParseResponseInvalid(t *testing.T) {
 	_, err := ParseResponse("invalid")
 	if err == nil {
 		t.Error("Expected error for invalid response")
+	}
+}
+
+// TestParseResponseStrict tests strict response parsing.
+func TestParseResponseStrict(t *testing.T) {
+	resp, err := ParseResponseStrict("\x1b_Gi=10,p=1;OK\x1b\\")
+	if err != nil {
+		t.Fatalf("ParseResponseStrict error: %v", err)
+	}
+	if !resp.Success || resp.ImageID != 10 || resp.PlacementID != 1 {
+		t.Fatalf("unexpected strict parse result: %#v", resp)
+	}
+}
+
+// TestParseResponseStrictInvalidMarkers tests strict marker validation.
+func TestParseResponseStrictInvalidMarkers(t *testing.T) {
+	_, err := ParseResponseStrict("i=10;OK")
+	if err == nil {
+		t.Fatal("expected error for missing APC markers")
+	}
+}
+
+// TestParseResponseStrictInvalidControlData tests strict control data validation.
+func TestParseResponseStrictInvalidControlData(t *testing.T) {
+	_, err := ParseResponseStrict("\x1b_Gi10;OK\x1b\\")
+	if err == nil {
+		t.Fatal("expected error for invalid control data")
+	}
+}
+
+// TestParseResponseStrictInvalidStatus tests strict status validation.
+func TestParseResponseStrictInvalidStatus(t *testing.T) {
+	_, err := ParseResponseStrict("\x1b_Gi=10;BROKEN\x1b\\")
+	if err == nil {
+		t.Fatal("expected error for invalid status format")
 	}
 }
 

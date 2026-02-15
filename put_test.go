@@ -19,6 +19,15 @@ func TestNewPut(t *testing.T) {
 	}
 }
 
+// TestPutBuilder_ImageNumber tests setting image number
+func TestPutBuilder_ImageNumber(t *testing.T) {
+	pb := NewPut(10)
+	pb.ImageNumber(100)
+	if pb.cmd.controlData["I"] != "100" {
+		t.Errorf("Expected image number '100', got %s", pb.cmd.controlData["I"])
+	}
+}
+
 // TestPutBuilder_PlacementID tests setting placement ID
 func TestPutBuilder_PlacementID(t *testing.T) {
 	pb := NewPut(10)

@@ -34,6 +34,12 @@ func (fb *FrameBuilder) Dimensions(width, height int) *FrameBuilder {
 	return fb
 }
 
+// FrameNumber sets the frame number to edit (replaces an existing frame instead of appending).
+func (fb *FrameBuilder) FrameNumber(frameNum uint32) *FrameBuilder {
+	fb.cmd.SetKeyUint32("r", frameNum)
+	return fb
+}
+
 // BackgroundFrame sets the frame number to use as background (0 = base image).
 func (fb *FrameBuilder) BackgroundFrame(frameNum uint32) *FrameBuilder {
 	fb.cmd.SetKeyUint32("c", frameNum)
@@ -92,7 +98,7 @@ func (ab *AnimateBuilder) State(state AnimationState) *AnimateBuilder {
 	return ab
 }
 
-// LoopCount sets the number of times to loop (0 = infinite, default = 1).
+// LoopCount sets the number of times to loop (0 = ignored, 1 = infinite, N>1 = loop N-1 times).
 func (ab *AnimateBuilder) LoopCount(count uint32) *AnimateBuilder {
 	ab.cmd.SetKeyUint32("v", count)
 	return ab
@@ -104,7 +110,7 @@ func (ab *AnimateBuilder) GapOverride(milliseconds uint32) *AnimateBuilder {
 	return ab
 }
 
-// Frame sets the frame number to stop at (used with AnimationStopCurrent state).
+// Frame sets the frame number to stop at (used with AnimationStop state).
 func (ab *AnimateBuilder) Frame(frameNum uint32) *AnimateBuilder {
 	ab.cmd.SetKeyUint32("c", frameNum)
 	return ab
@@ -135,21 +141,37 @@ func NewCompose(imageID uint32) *ComposeBuilder {
 	return cb
 }
 
-// BackgroundFrame sets the background frame number.
-func (cb *ComposeBuilder) BackgroundFrame(frameNum uint32) *ComposeBuilder {
+// SourceFrame sets the source frame number to compose from.
+func (cb *ComposeBuilder) SourceFrame(frameNum uint32) *ComposeBuilder {
+	cb.cmd.SetKeyUint32("r", frameNum)
+	return cb
+}
+
+// DestFrame sets the destination frame number to compose onto.
+func (cb *ComposeBuilder) DestFrame(frameNum uint32) *ComposeBuilder {
 	cb.cmd.SetKeyUint32("c", frameNum)
+	return cb
+}
+
+// SourceRect sets the source rectangle offset and size within the source frame.
+func (cb *ComposeBuilder) SourceRect(x, y, width, height int) *ComposeBuilder {
+	cb.cmd.SetKeyInt("x", x)
+	cb.cmd.SetKeyInt("y", y)
+	cb.cmd.SetKeyInt("w", width)
+	cb.cmd.SetKeyInt("h", height)
+	return cb
+}
+
+// DestOffset sets the destination offset for the composed rectangle.
+func (cb *ComposeBuilder) DestOffset(x, y int) *ComposeBuilder {
+	cb.cmd.SetKeyInt("X", x)
+	cb.cmd.SetKeyInt("Y", y)
 	return cb
 }
 
 // Composition sets the composition mode.
 func (cb *ComposeBuilder) Composition(mode CompositionMode) *ComposeBuilder {
-	cb.cmd.SetKeyUint32("X", uint32(mode))
-	return cb
-}
-
-// BackgroundColor sets the background color (32-bit RGBA).
-func (cb *ComposeBuilder) BackgroundColor(rgba uint32) *ComposeBuilder {
-	cb.cmd.SetKeyUint32("Y", rgba)
+	cb.cmd.SetKeyUint32("C", uint32(mode))
 	return cb
 }
 
@@ -166,7 +188,8 @@ func (cb *ComposeBuilder) Build() *Command {
 
 // Helper functions for common animation operations
 
-// PlayAnimation plays an animation once (no looping).
+// PlayAnimation plays an animation using LoopCount(2).
+// See PlayAnimationWithLoopCount for explicit loop-count control.
 func PlayAnimation(imageID uint32) *Command {
 	return NewAnimate(imageID).State(AnimationLoop).LoopCount(2).Build()
 }
@@ -176,7 +199,18 @@ func PlayAnimationLoop(imageID uint32) *Command {
 	return NewAnimate(imageID).State(AnimationLoop).LoopCount(1).Build()
 }
 
+// PlayAnimationWithLoopCount plays an animation with an explicit protocol loop-count value.
+// LoopCount semantics: 0 = ignored, 1 = infinite, N>1 = loop N-1 times.
+func PlayAnimationWithLoopCount(imageID, count uint32) *Command {
+	return NewAnimate(imageID).State(AnimationLoop).LoopCount(count).Build()
+}
+
 // StopAnimation stops an animation at the current frame.
 func StopAnimation(imageID uint32) *Command {
 	return NewAnimate(imageID).State(AnimationStop).Build()
+}
+
+// ResetAnimation stops an animation and resets it to the first frame.
+func ResetAnimation(imageID uint32) *Command {
+	return NewAnimate(imageID).State(AnimationStop).Frame(0).Build()
 }
